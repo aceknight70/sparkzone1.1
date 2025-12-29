@@ -1,0 +1,8 @@
+{
+  "name": "Copy of Spark Zone",
+  "description": "A social role-playing app where the spark of creativity begins. Embark on a journey of collaborative storytelling and character creation.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

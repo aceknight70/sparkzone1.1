@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#050505" />
+    <title>Spark Zone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- ES Module Shims: Required for import maps to work in all browsers -->
+    <script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0?dev",
+    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime?dev",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client?dev",
+    "@google/genai": "https://esm.sh/@google/genai",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+  }
+}
+</script>
+
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Impact&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+      :root {
+        --neon-cyan: #22d3ee;
+        --neon-violet: #a78bfa;
+        --bg-dark: #050505;
+      }
+
+      /* CRITICAL FIX: Lock the body to the screen to prevent browser scrolling */
+      html, body {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        overscroll-behavior: none; /* Prevents rubber-banding on Mac/iOS */
+        background-color: var(--bg-dark);
+        color: white;
+        font-family: 'Inter', 'Poppins', sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      #root {
+        height: 100%;
+        width: 100%;
+      }
+
+      /* Background Pattern */
+      .bg-grid-pattern {
+        background-size: 40px 40px;
+        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                          linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+        transform: translateZ(0);
+        will-change: transform;
+      }
+
+      .glass-panel {
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transform: translateZ(0);
+      }
+
+      .glass-panel-hover:hover {
+        background: rgba(30, 41, 59, 0.9);
+        border-color: rgba(34, 211, 238, 0.3);
+        box-shadow: 0 0 15px rgba(34, 211, 238, 0.1);
+      }
+
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fadeInUp {
+        animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        will-change: transform, opacity;
+      }
+
+      @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 5px rgba(34, 211, 238, 0.2); }
+        50% { box-shadow: 0 0 15px rgba(34, 211, 238, 0.5); }
+      }
+      .animate-pulse-glow {
+        animation: pulse-glow 2s infinite;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0f172a;
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: #334155;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: #475569;
+      }
+      
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      .meme-text {
+        font-family: 'Impact', 'Arial Black', sans-serif;
+        text-transform: uppercase;
+        color: white;
+        -webkit-text-stroke: 1px black;
+        text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+        line-height: 1.1;
+        text-align: center;
+        padding: 0 8px;
+        word-wrap: break-word;
+      }
+
+      /* Chat Background Effects */
+      @keyframes ken-burns {
+        0% { transform: scale(1) translate(0, 0); }
+        50% { transform: scale(1.1) translate(-1%, -1%); }
+        100% { transform: scale(1) translate(0, 0); }
+      }
+
+      .animate-ken-burns {
+        animation: ken-burns 30s ease-in-out infinite alternate;
+        will-change: transform;
+      }
+
+      .bg-noise {
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.07'/%3E%3C/svg%3E");
+      }
+    </style>
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
