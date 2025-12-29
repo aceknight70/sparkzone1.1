@@ -1,0 +1,631 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  username        String    @unique
+  name            String
+  avatarUrl       String?
+  bannerUrl       String?
+  bio             String?
+  pronouns        String?
+  gender          String?
+  age             Int?
+  nationality     String?
+  isPremium       Boolean   @default(false)
+  isEmailVerified Boolean   @default(false)
+  
+  // Auth fields
+  passwordHash    String?
+  googleId        String?   @unique
+  discordId       String?   @unique
+  
+  // Spark Clash profile
+  sparks          Int       @default(100)
+  battlePower     Int       @default(100)
+  
+  // Safety settings
+  maxAgeRating    AgeRating @default(Everyone)
+  blockedTags     String[]  @default([])
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastActive      DateTime  @default(now())
+  
+  // Relations
+  characters      Character[]
+  worlds          World[]
+  stories         Story[]
+  posts           Post[]
+  comments        Comment[]
+  likes           Like[]
+  follows         Follow[]     @relation("UserFollows")
+  followers       Follow[]     @relation("UserFollowers")
+  
+  // Communities
+  ownedCommunities Community[] @relation("CommunityOwner")
+  joinedCommunities CommunityMember[]
+  
+  // Parties
+  ownedParties    Party[]      @relation("PartyHost")
+  joinedParties   PartyMember[]
+  
+  // Messaging
+  sentMessages    Message[]    @relation("MessageSender")
+  conversations   ConversationParticipant[]
+  
+  // Notifications
+  notifications   Notification[]
+  
+  // Spark Clash
+  sparkCards      SparkCard[]
+  sparkDecks      SparkDeck[]
+  sparkBattles    SparkBattle[] @relation("BattleParticipant")
+  
+  @@map("users")
+}
+
+model Character {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  imageUrl    String?
+  personality String?
+  backstory   String?
+  appearance  String?
+  
+  // Metadata
+  ageRating   AgeRating @default(Everyone)
+  tags        String[]  @default([])
+  warnings    String[]  @default([])
+  
+  // Relations
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Usage in content
+  stories     StoryCharacter[]
+  posts       Post[]
+  parties     PartyCharacter[]
+  
+  // Stats
+  likes       Int       @default(0)
+  uses        Int       @default(0)
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("characters")
+}
+
+model World {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  imageUrl    String?
+  lore        String?
+  rules       String?
+  
+  // Metadata
+  ageRating   AgeRating @default(Everyone)
+  tags        String[]  @default([])
+  warnings    String[]  @default([])
+  
+  // Relations
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Usage in content
+  stories     Story[]
+  parties     Party[]
+  
+  // Stats
+  likes       Int       @default(0)
+  uses        Int       @default(0)
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("worlds")
+}
+
+model Story {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  content     String
+  imageUrl    String?
+  
+  // Story settings
+  genre       String?
+  isCollaborative Boolean @default(false)
+  isPublished Boolean   @default(false)
+  
+  // Metadata
+  ageRating   AgeRating @default(Everyone)
+  tags        String[]  @default([])
+  warnings    String[]  @default([])
+  
+  // Relations
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  worldId     String?
+  world       World?    @relation(fields: [worldId], references: [id])
+  
+  characters  StoryCharacter[]
+  chapters    Chapter[]
+  collaborators StoryCollaborator[]
+  
+  // Stats
+  likes       Int       @default(0)
+  views       Int       @default(0)
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("stories")
+}
+
+model Chapter {
+  id          String    @id @default(cuid())
+  title       String
+  content     String
+  order       Int
+  
+  storyId     String
+  story       Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("chapters")
+}
+
+model StoryCharacter {
+  id          String    @id @default(cuid())
+  
+  storyId     String
+  story       Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  
+  role        String?   // Main, Supporting, etc.
+  
+  @@unique([storyId, characterId])
+  @@map("story_characters")
+}
+
+model StoryCollaborator {
+  id        String    @id @default(cuid())
+  
+  storyId   String
+  story     Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  role      String    @default("collaborator") // owner, editor, collaborator
+  canEdit   Boolean   @default(true)
+  
+  joinedAt  DateTime  @default(now())
+  
+  @@unique([storyId, userId])
+  @@map("story_collaborators")
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  content     String
+  imageUrl    String?
+  type        PostType  @default(TEXT)
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  characterId String?
+  character   Character? @relation(fields: [characterId], references: [id])
+  
+  communityId String?
+  community   Community? @relation(fields: [communityId], references: [id])
+  
+  // Relations
+  comments    Comment[]
+  likes       Like[]
+  
+  // Stats
+  likeCount   Int       @default(0)
+  commentCount Int      @default(0)
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("posts")
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId    String
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  
+  likes     Like[]
+  likeCount Int       @default(0)
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  @@map("comments")
+}
+
+model Like {
+  id        String    @id @default(cuid())
+  
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId    String?
+  post      Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  commentId String?
+  comment   Comment?  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime  @default(now())
+  
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+  @@map("likes")
+}
+
+model Follow {
+  id          String    @id @default(cuid())
+  
+  followerId  String
+  follower    User      @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+  
+  followingId String
+  following   User      @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now())
+  
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model Community {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  imageUrl    String?
+  bannerUrl   String?
+  
+  isPrivate   Boolean   @default(false)
+  
+  ownerId     String
+  owner       User      @relation("CommunityOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  members     CommunityMember[]
+  posts       Post[]
+  
+  memberCount Int       @default(0)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("communities")
+}
+
+model CommunityMember {
+  id          String    @id @default(cuid())
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  
+  role        String    @default("member") // owner, moderator, member
+  
+  joinedAt    DateTime  @default(now())
+  
+  @@unique([userId, communityId])
+  @@map("community_members")
+}
+
+model Party {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  imageUrl    String?
+  
+  isActive    Boolean   @default(true)
+  isPrivate   Boolean   @default(false)
+  maxMembers  Int       @default(6)
+  
+  hostId      String
+  host        User      @relation("PartyHost", fields: [hostId], references: [id], onDelete: Cascade)
+  
+  worldId     String?
+  world       World?    @relation(fields: [worldId], references: [id])
+  
+  members     PartyMember[]
+  characters  PartyCharacter[]
+  messages    PartyMessage[]
+  
+  memberCount Int       @default(1)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("parties")
+}
+
+model PartyMember {
+  id        String    @id @default(cuid())
+  
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  partyId   String
+  party     Party     @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  
+  role      String    @default("member") // host, member
+  
+  joinedAt  DateTime  @default(now())
+  
+  @@unique([userId, partyId])
+  @@map("party_members")
+}
+
+model PartyCharacter {
+  id          String    @id @default(cuid())
+  
+  partyId     String
+  party       Party     @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  
+  addedAt     DateTime  @default(now())
+  
+  @@unique([partyId, characterId])
+  @@map("party_characters")
+}
+
+model PartyMessage {
+  id          String    @id @default(cuid())
+  content     String
+  type        MessageType @default(TEXT)
+  
+  partyId     String
+  party       Party     @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  
+  characterId String?
+  
+  createdAt   DateTime  @default(now())
+  
+  @@map("party_messages")
+}
+
+model Conversation {
+  id            String    @id @default(cuid())
+  title         String?
+  isGroup       Boolean   @default(false)
+  
+  participants  ConversationParticipant[]
+  messages      Message[]
+  
+  lastMessageAt DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String    @id @default(cuid())
+  
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  lastReadAt     DateTime  @default(now())
+  joinedAt       DateTime  @default(now())
+  
+  @@unique([userId, conversationId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String    @id @default(cuid())
+  content        String
+  type           MessageType @default(TEXT)
+  imageUrl       String?
+  
+  senderId       String
+  sender         User      @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  createdAt      DateTime  @default(now())
+  editedAt       DateTime?
+  
+  @@map("messages")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  type      NotificationType
+  title     String
+  content   String
+  data      Json?     // Additional data for the notification
+  
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  
+  @@map("notifications")
+}
+
+// Spark Clash Game Models
+
+model SparkCard {
+  id          String    @id @default(cuid())
+  templateId  String
+  template    SparkCardTemplate @relation(fields: [templateId], references: [id])
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  level       Int       @default(1)
+  experience  Int       @default(0)
+  
+  obtainedAt  DateTime  @default(now())
+  
+  @@map("spark_cards")
+}
+
+model SparkCardTemplate {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  imageUrl    String
+  rarity      CardRarity
+  element     String?
+  
+  // Stats
+  basePower   Int
+  baseDefense Int
+  baseSpeed   Int
+  
+  // Game mechanics
+  abilities   Json[]    @default([])
+  cost        Int       @default(1)
+  
+  cards       SparkCard[]
+  
+  createdAt   DateTime  @default(now())
+  
+  @@map("spark_card_templates")
+}
+
+model SparkDeck {
+  id        String    @id @default(cuid())
+  name      String
+  
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  cardIds   String[]  @default([])
+  isActive  Boolean   @default(false)
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  @@map("spark_decks")
+}
+
+model SparkBattle {
+  id          String    @id @default(cuid())
+  
+  participant1Id String
+  participant1   User   @relation("BattleParticipant", fields: [participant1Id], references: [id])
+  
+  participant2Id String
+  participant2   User   @relation("BattleParticipant", fields: [participant2Id], references: [id])
+  
+  winnerId    String?
+  
+  battleData  Json      // Store battle state/history
+  status      BattleStatus @default(WAITING)
+  
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  
+  @@map("spark_battles")
+}
+
+// Enums
+
+enum AgeRating {
+  Everyone
+  Teen
+  Mature
+}
+
+enum PostType {
+  TEXT
+  IMAGE
+  CHARACTER_SHOWCASE
+  WORLD_SHOWCASE
+  STORY_EXCERPT
+  MEME
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  SYSTEM
+  CHARACTER_ACTION
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  MENTION
+  PARTY_INVITE
+  COMMUNITY_INVITE
+  SPARK_BATTLE_CHALLENGE
+  SYSTEM
+}
+
+enum CardRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum BattleStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
